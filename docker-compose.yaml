@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+    restart: always
+    volumes:
+      - .:/app
+
+  redis:
+    image: redis:latest
+    environment:
+       - ALLOW_EMPTY_PASSWORD=yes
+    command: redis-server --port 6379
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A config worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A config beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  celery-flower:
+    build: .
+    command: celery -A config.celery.app flower
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
